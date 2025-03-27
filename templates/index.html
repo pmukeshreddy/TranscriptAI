@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RNA 3D Structure Prediction</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #1abc9c;
+            --background-color: #f5f7fa;
+            --card-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e1e4e8;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --success-color: #27ae60;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            --border-radius: 6px;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 2rem 0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        main {
+            padding: 2rem 0;
+        }
+
+        h1, h2, h3, h4 {
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .panel {
+            background-color: var(--card-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            margin-bottom: 0.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            resize: vertical;
+            transition: var(--transition);
+        }
+
+        textarea:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .help-text {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: var(--transition);
+        }
+
+        .primary-btn {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .primary-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .secondary-btn {
+            background-color: #f0f0f0;
+            color: var(--text-color);
+        }
+
+        .secondary-btn:hover {
+            background-color: #e0e0e0;
+        }
+
+        .form-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-top-color: var(--secondary-color);
+            border-radius: 50%;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background-color: #fce8e6;
+            border-left: 4px solid var(--error-color);
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .error-message i {
+            color: var(--error-color);
+            font-size: 1.5rem;
+            margin-right: 1rem;
+        }
+
+        .warning-message {
+            background-color: #fef5e7;
+            border-left: 4px solid var(--warning-color);
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .warning-message i {
+            color: var(--warning-color);
+            font-size: 1.5rem;
+            margin-right: 1rem;
+        }
+
+        .results-panel {
+            display: none;
+        }
+
+        .sequence-info {
+            font-family: 'Courier New', monospace;
+            background-color: #f5f5f5;
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius);
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .result-image {
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .result-image img {
+            max-width: 100%;
+            height: auto;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .tab-container {
+            margin-top: 2rem;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+        }
+
+        .tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-weight: 500;
+        }
+
+        .tab.active {
+            border-bottom-color: var(--secondary-color);
+            color: var(--secondary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .switch-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+            margin-right: 10px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--secondary-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .option-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background-color: #f5f5f5;
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--secondary-color);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .visualization-options {
+            background-color: #f5f5f5;
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 2rem;
+        }
+
+        footer {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 2rem 0;
+            margin-top: 3rem;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .example-btn {
+            padding: 0.35rem 0.75rem;
+            font-size: 0.85rem;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .form-buttons, .result-actions {
+                flex-direction: column;
+            }
+            
+            .panel {
+                padding: 1.5rem;
+            }
+            
+            .visualization-options {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <h1>RNA 3D Structure Prediction</h1>
+            <p>Predict the 3D structure of RNA sequences using graph transformer models</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="panel input-panel">
+            <h2>Input RNA Sequence</h2>
+            <div id="error-container" class="error-message" style="display: none;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div id="error-message"></div>
+            </div>
+            
+            <div id="warning-container" class="warning-message" style="display: none;">
+                <i class="fas fa-exclamation-circle"></i>
+                <div id="warning-message"></div>
+            </div>
+            
+            <form id="prediction-form">
+                <div class="form-group">
+                    <label for="sequence">RNA Sequence (A, C, G, U only)</label>
+                    <textarea id="sequence" name="sequence" rows="5" placeholder="Enter RNA sequence..." required></textarea>
+                    <div class="help-text">Example sequences:</div>
+                    <div>
+                        <button type="button" class="btn secondary-btn example-btn" data-sequence="GGCUAGAUCAGCUUGAUUAGCUAGCC">Hairpin</button>
+                        <button type="button" class="btn secondary-btn example-btn" data-sequence="GGCUAGUCAGCUUGACCUAGCC">Loop</button>
+                        <button type="button" class="btn secondary-btn example-btn" data-sequence="GGGAACCUUUCCCAAGGGAAACCC">Stem</button>
+                    </div>
+                </div>
+                
+                <div class="visualization-options">
+                    <div class="switch-container">
+                        <label class="switch">
+                            <input type="checkbox" id="show-pairs" name="show_pairs" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <span class="option-label">Show Base Pairs</span>
+                    </div>
+                    
+                    <div class="switch-container">
+                        <label class="switch">
+                            <input type="checkbox" id="backbone-only" name="backbone_only">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="option-label">Backbone Only</span>
+                    </div>
+                </div>
+                
+                <div class="form-buttons">
+                    <button type="submit" class="btn primary-btn" id="predict-btn">
+                        <i class="fas fa-dna"></i> Predict Structure
+                    </button>
+                    <button type="button" class="btn secondary-btn" id="clear-btn">
+                        <i class="fas fa-trash"></i> Clear
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <div id="loading" class="loading panel" style="display: none;">
+            <div class="spinner"></div>
+            <p>Predicting RNA structure...</p>
+            <p class="help-text">This may take a few moments, especially for longer sequences.</p>
+        </div>
+
+        <div id="results-panel" class="panel results-panel">
+            <h2>Predicted RNA Structure</h2>
+            
+            <div class="sequence-info">
+                <div id="sequence-display">Sequence: </div>
+                <div id="sequence-length">Length: </div>
+            </div>
+            
+            <div class="tab-container">
+                <div class="tabs">
+                    <div class="tab active" data-tab="3d-view">3D Structure</div>
+                    <div class="tab" data-tab="refinement">Refinement Process</div>
+                    <div class="tab" data-tab="graph-view">Graph View</div>
+                    <div class="tab" data-tab="analysis">Structure Analysis</div>
+                </div>
+                
+                <div class="tab-content active" id="3d-view">
+                    <div class="result-image">
+                        <img id="structure-image" alt="RNA Structure Visualization">
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="refinement">
+                    <p>This visualization shows how the structure is refined through multiple iterations:</p>
+                    <div class="result-image">
+                        <img id="refinement-image" alt="RNA Structure Refinement Process">
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="graph-view">
+                    <p>2D graph representation of the RNA structure:</p>
+                    <div class="result-image">
+                        <img id="graph-image" alt="RNA Structure Graph View">
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="analysis">
+                    <h3>Structure Statistics</h3>
+                    <div id="structure-stats" class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="gc-content">-</div>
+                            <div class="stat-label">GC Content (%)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="pair-count">-</div>
+                            <div class="stat-label">Base Pairs</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="pair-ratio">-</div>
+                            <div class="stat-label">Pairing Ratio (%)</div>
+                        </div>
+                    </div>
+                    <div id="analysis-graph" class="result-image">
+                        <img id="analysis-image" alt="RNA Structure Analysis">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="result-actions">
+                <button class="btn secondary-btn" id="download-img-btn">
+                    <i class="fas fa-download"></i> Download Image
+                </button>
+                <button class="btn secondary-btn" id="download-pdb-btn">
+                    <i class="fas fa-file-code"></i> Download PDB
+                </button>
+                <button class="btn secondary-btn" id="update-viz-btn">
+                    <i class="fas fa-sync"></i> Update Visualization
+                </button>
+                <button class="btn secondary-btn" id="new-prediction-btn">
+                    <i class="fas fa-plus"></i> New Prediction
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>RNA Structure Prediction Tool &copy; 2025</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const predictionForm = document.getElementById('prediction-form');
+            const clearBtn = document.getElementById('clear-btn');
+            const downloadImgBtn = document.getElementById('download-img-btn');
+            const downloadPdbBtn = document.getElementById('download-pdb-btn');
+            const updateVizBtn = document.getElementById('update-viz-btn');
+            const newPredictionBtn = document.getElementById('new-prediction-btn');
+            const loadingDiv = document.getElementById('loading');
+            const resultsPanel = document.getElementById('results-panel');
+            const errorContainer = document.getElementById('error-container');
+            const warningContainer = document.getElementById('warning-container');
+            const errorMessage = document.getElementById('error-message');
+            const warningMessage = document.getElementById('warning-message');
+            
+            // Store the prediction data for further analysis
+            let currentPredictionData = null;
+            
+            // Set up tabs
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Remove active class from all tabs and contents
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    // Add active class to clicked tab and corresponding content
+                    this.classList.add('active');
+                    const tabId = this.getAttribute('data-tab');
+                    document.getElementById(tabId).classList.add('active');
+                    
+                    // Load analysis data if analysis tab is clicked
+                    if (tabId === 'analysis' && currentPredictionData) {
+                        loadAnalysisData(currentPredictionData.sequence, currentPredictionData.coords_data);
+                    }
+                });
+            });
+            
+            // Set up example buttons
+            const exampleButtons = document.querySelectorAll('.example-btn');
+            exampleButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    document.getElementById('sequence').value = this.getAttribute('data-sequence');
+                });
+            });
+            
+            // Handle form submission
+            predictionForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Hide any previous error messages
+                errorContainer.style.display = 'none';
+                warningContainer.style.display = 'none';
+                
+                // Hide results panel if visible
+                resultsPanel.style.display = 'none';
+                
+                // Show loading spinner
+                loadingDiv.style.display = 'flex';
+                
+                // Get form data
+                const formData = new FormData(predictionForm);
+                
+                // Submit prediction request
+                fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Hide loading spinner
+                    loadingDiv.style.display = 'none';
+                    
+                    if (data.error) {
+                        // Show error message
+                        errorMessage.textContent = data.error;
+                        errorContainer.style.display = 'flex';
+                    } else {
+                        // Store prediction data
+                        currentPredictionData = {
+                            sequence: data.sequence,
+                            coords_data: data.coords_data, // Base64 encoded coordinates
+                            pdb_filename: data.pdb_filename
+                        };
+                        
+                        // Display warning if present
+                        if (data.warning) {
+                            warningMessage.textContent = data.warning;
+                            warningContainer.style.display = 'flex';
+                        }
+                        
+                        // Update results
+                        document.getElementById('sequence-display').textContent = `Sequence: ${data.sequence.slice(0, 20)}${data.sequence.length > 20 ? '...' : ''}`;
+                        document.getElementById('sequence-length').textContent = `Length: ${data.sequence_length}`;
+                        document.getElementById('structure-image').src = `data:image/png;base64,${data.image}`;
+                        document.getElementById('refinement-image').src = `data:image/png;base64,${data.refinement_image}`;
+                        
+                        // Update graph view if available
+                        if (data.graph_image) {
+                            document.getElementById('graph-image').src = `data:image/png;base64,${data.graph_image}`;
+                        }
+                        
+                        // Store PDB filename for download
+                        downloadPdbBtn.setAttribute('data-filename', data.pdb_filename);
+                        
+                        // Show results panel
+                        resultsPanel.style.display = 'block';
+                        
+                        // Reset to first tab
+                        tabs.forEach(t => t.classList.remove('active'));
+                        tabContents.forEach(c => c.classList.remove('active'));
+                        tabs[0].classList.add('active');
+                        tabContents[0].classList.add('active');
+                        
+                        // Scroll to results
+                        resultsPanel.scrollIntoView({ behavior: 'smooth' });
+                    }
+                })
+                .catch(error => {
+                    // Hide loading spinner
+                    loadingDiv.style.display = 'none';
+                    
+                    // Show error message
+                    errorMessage.textContent = 'An error occurred while processing your request.';
+                    errorContainer.style.display = 'flex';
+                    
+                    console.error('Error:', error);
+                });
+            });
+            
+            // Function to load analysis data
+            function loadAnalysisData(sequence, coords_data) {
+                // Show loading state in the analysis tab
+                document.getElementById('gc-content').textContent = '...';
+                document.getElementById('pair-count').textContent = '...';
+                document.getElementById('pair-ratio').textContent = '...';
+                
+                // Create form data
+                const formData = new FormData();
+                formData.append('sequence', sequence);
+                if (coords_data) {
+                    formData.append('coords_data', coords_data);
+                }
+                
+                // Request analysis
+                fetch('/analyze_structure', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Analysis error:', data.error);
+                    } else {
+                        // Update statistics
+                        document.getElementById('gc-content').textContent = data.gc_content;
+                        document.getElementById('pair-count').textContent = data.pair_count;
+                        document.getElementById('pair-ratio').textContent = data.pair_ratio;
+                        
+                        // Update analysis image if available
+                        if (data.graph_image) {
+                            document.getElementById('analysis-image').src = `data:image/png;base64,${data.graph_image}`;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error analyzing structure:', error);
+                });
+            }
+            
+            // Clear form
+            clearBtn.addEventListener('click', function() {
+                predictionForm.reset();
+                errorContainer.style.display = 'none';
+                warningContainer.style.display = 'none';
+            });
+            
+            // Download structure image
+            downloadImgBtn.addEventListener('click', function() {
+                const activeTab = document.querySelector('.tab.active').getAttribute('data-tab');
+                let img;
+                
+                switch (activeTab) {
+                    case '3d-view':
+                        img = document.getElementById('structure-image');
+                        break;
+                    case 'refinement':
+                        img = document.getElementById('refinement-image');
+                        break;
+                    case 'graph-view':
+                        img = document.getElementById('graph-image');
+                        break;
+                    case 'analysis':
+                        img = document.getElementById('analysis-image');
+                        break;
+                    default:
+                        img = document.getElementById('structure-image');
+                }
+                
+                if (img && img.src) {
+                    const link = document.createElement('a');
+                    link.href = img.src;
+                    link.download = `rna_structure_${activeTab}.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            });
+            
+            // Download PDB file
+            downloadPdbBtn.addEventListener('click', function() {
+                const filename = this.getAttribute('data-filename');
+                if (filename) {
+                    window.location.href = `/download_pdb/${filename}`;
+                }
+            });
+            
+            // Update visualization options
+            updateVizBtn.addEventListener('click', function() {
+                if (!currentPredictionData) return;
+                
+                const showPairs = document.getElementById('show-pairs').checked;
+                const backboneOnly = document.getElementById('backbone-only').checked;
+                
+                // Create form data
+                const formData = new FormData();
+                formData.append('sequence', currentPredictionData.sequence);
+                formData.append('coords_data', currentPredictionData.coords_data);
+                formData.append('show_pairs', showPairs);
+                formData.append('backbone_only', backboneOnly);
+                
+                // Show loading spinner for the image
+                document.getElementById('structure-image').style.opacity = '0.5';
+                
+                // Request updated visualization
+                fetch('/toggle_visualization', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Visualization update error:', data.error);
+                    } else {
+                        // Update image
+                        document.getElementById('structure-image').src = `data:image/png;base64,${data.image}`;
+                    }
+                    // Restore opacity
+                    document.getElementById('structure-image').style.opacity = '1';
+                })
+                .catch(error => {
+                    console.error('Error updating visualization:', error);
+                    // Restore opacity
+                    document.getElementById('structure-image').style.opacity = '1';
+                });
+            });
+            
+            // Start new prediction
+            newPredictionBtn.addEventListener('click', function() {
+                resultsPanel.style.display = 'none';
+                errorContainer.style.display = 'none';
+                warningContainer.style.display = 'none';
+                
+                // Reset current prediction data
+                currentPredictionData = null;
+                
+                // Scroll to top of form
+                document.querySelector('.input-panel').scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>
